@@ -1,53 +1,67 @@
 /* ════════════════════════════════════════════════
    app.js — Shared utilities
-   - Dark / Light theme toggle (dengan animasi icon)
-   - Page switching Dosen ↔ Mahasiswa
-   - Helper: setLoading(), showResult()
+   4 tab: Dosen | Mahasiswa | Accel | GPS
    ════════════════════════════════════════════════ */
 
 /* ── THEME TOGGLE ──────────────────────────────── */
 (function initTheme() {
   const btn = document.getElementById('themeToggle');
   if (!btn) return;
-
-  // Cek preferensi sistem
   const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
   if (prefersDark) document.body.classList.add('dark');
-
-  btn.addEventListener('click', () => {
-    document.body.classList.toggle('dark');
-  });
+  btn.addEventListener('click', () => document.body.classList.toggle('dark'));
 })();
 
 
 /* ── PAGE SWITCHING ────────────────────────────── */
 (function initPageSwitch() {
-  const btnDosen      = document.getElementById('btnDosen');
-  const btnMahasiswa  = document.getElementById('btnMahasiswa');
-  const indicator     = document.getElementById('segIndicator');
-  const dosenPage     = document.getElementById('dosenPage');
-  const mahasiswaPage = document.getElementById('mahasiswaPage');
+  const tabs = [
+    { btn: 'btnDosen',     page: 'dosenPage'     },
+    { btn: 'btnMahasiswa', page: 'mahasiswaPage'  },
+    { btn: 'btnAccel',     page: 'accelPage'      },
+    { btn: 'btnGps',       page: 'gpsPage'        },
+  ];
 
-  if (!btnDosen || !btnMahasiswa) return;
+  const indicator = document.getElementById('segIndicator');
 
-  btnDosen.addEventListener('click', () => switchTo('dosen'));
-  btnMahasiswa.addEventListener('click', () => switchTo('mahasiswa'));
+  tabs.forEach((tab, idx) => {
+    const btn = document.getElementById(tab.btn);
+    if (!btn) return;
+    btn.addEventListener('click', () => switchTo(idx));
+  });
 
-  function switchTo(page) {
-    if (page === 'dosen') {
-      indicator.classList.remove('right');
-      btnDosen.classList.add('active');
-      btnMahasiswa.classList.remove('active');
-      dosenPage.classList.add('active-page');
-      mahasiswaPage.classList.remove('active-page');
-      // Hentikan scanner jika aktif
-      if (typeof window.stopScanner === 'function') window.stopScanner();
-    } else {
-      indicator.classList.add('right');
-      btnMahasiswa.classList.add('active');
-      btnDosen.classList.remove('active');
-      mahasiswaPage.classList.add('active-page');
-      dosenPage.classList.remove('active-page');
+  function switchTo(activeIdx) {
+    tabs.forEach((tab, idx) => {
+      const btn  = document.getElementById(tab.btn);
+      const page = document.getElementById(tab.page);
+      if (!btn || !page) return;
+
+      if (idx === activeIdx) {
+        btn.classList.add('active');
+        page.classList.add('active-page');
+      } else {
+        btn.classList.remove('active');
+        page.classList.remove('active-page');
+      }
+    });
+
+    // Geser indicator
+    if (indicator) {
+      const positions = ['', 'right', 'right2', 'right3'];
+      indicator.className = 'seg-indicator ' + (positions[activeIdx] || '');
+    }
+
+    // Stop scanner kalau pindah dari mahasiswa
+    if (activeIdx !== 1 && typeof window.stopScanner === 'function') {
+      window.stopScanner();
+    }
+    // Stop accel kalau pindah dari accel
+    if (activeIdx !== 2 && typeof window.stopAccel === 'function') {
+      window.stopAccel();
+    }
+    // Stop GPS kalau pindah dari gps
+    if (activeIdx !== 3 && typeof window.stopGps === 'function') {
+      window.stopGps();
     }
   }
 })();
@@ -67,12 +81,6 @@ function setLoading(btn, isLoading) {
 
 
 /* ── HELPER: SHOW RESULT BOX ───────────────────── */
-/**
- * @param {string}             elementId  - ID elemen result box
- * @param {string}             msg        - Pesan (boleh HTML)
- * @param {'success'|'error'}  type
- * @param {number}             [autohide] - ms, 0 = tidak auto-hide
- */
 function showResult(elementId, msg, type, autohide = 7000) {
   const el = document.getElementById(elementId);
   if (!el) return;

@@ -3,14 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>QR Presensi</title>
+  <title>Komputasi Awan — Presensi + Sensor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 
@@ -66,6 +69,20 @@
           <path d="M6 12v5c3 3 9 3 12 0v-5"/>
         </svg>
         Mahasiswa
+      </button>
+      <button class="seg-btn" id="btnAccel">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+        Accel
+      </button>
+      <button class="seg-btn" id="btnGps">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+          <circle cx="12" cy="12" r="8" stroke-dasharray="3 3"/>
+        </svg>
+        GPS
       </button>
     </div>
   </div>
@@ -254,32 +271,6 @@
             </svg>
             <input type="text" id="manualToken" placeholder="TKN-XXXXXX" class="mono" autocomplete="off" />
           </div>
-          <p id="qrInfo" class="hidden" style="margin-top:6px;font-size:12px;color:var(--accent);font-weight:600;"></p>
-        </div>
-
-        <div class="row-2 hidden" id="manualCourseRow">
-          <div class="field">
-            <label for="mhs_course_id">Course ID</label>
-            <div class="input-box">
-              <svg class="field-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-              </svg>
-              <input type="text" id="mhs_course_id" placeholder="cloud-101" autocomplete="off" />
-            </div>
-          </div>
-          <div class="field">
-            <label for="mhs_session_id">Session ID</label>
-            <div class="input-box">
-              <svg class="field-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="4" width="18" height="18" rx="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
-              </svg>
-              <input type="text" id="mhs_session_id" placeholder="sesi-02" autocomplete="off" />
-            </div>
-          </div>
         </div>
 
         <div class="btn-pair">
@@ -306,6 +297,198 @@
       </div>
     </section>
 
+
+    <!-- ───────── ACCEL PAGE ───────── -->
+    <section id="accelPage" class="page">
+      <div class="page-head">
+        <div class="page-head-text">
+          <span class="chip chip-teal">Sensor</span>
+          <h2>Accelerometer</h2>
+          <p>Kirim & pantau data sensor gerak perangkat</p>
+        </div>
+        <div class="page-head-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="page-body">
+        <!-- Device ID -->
+        <div class="field">
+          <label for="accel_device_id">Device ID</label>
+          <div class="input-box">
+            <svg class="field-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="5" y="2" width="14" height="20" rx="2"/>
+              <line x1="12" y1="18" x2="12.01" y2="18"/>
+            </svg>
+            <input type="text" id="accel_device_id" placeholder="dev-001" autocomplete="off" />
+          </div>
+        </div>
+
+        <!-- Live read dari sensor -->
+        <div class="sensor-live" id="sensorLive">
+          <div class="sensor-axis">
+            <span class="axis-label">X</span>
+            <span class="axis-val" id="liveX">—</span>
+          </div>
+          <div class="sensor-axis">
+            <span class="axis-label">Y</span>
+            <span class="axis-val" id="liveY">—</span>
+          </div>
+          <div class="sensor-axis">
+            <span class="axis-label">Z</span>
+            <span class="axis-val" id="liveZ">—</span>
+          </div>
+        </div>
+
+        <p class="sensor-hint" id="sensorHint">⚡ Buka di HP untuk baca sensor real. Di laptop pakai data simulasi.</p>
+
+        <!-- Chart -->
+        <div class="chart-wrap">
+          <canvas id="accelChart"></canvas>
+        </div>
+
+        <!-- Buttons -->
+        <div class="btn-pair">
+          <button class="btn btn-primary" id="btnStartAccel" style="flex:2">
+            <span class="btn-spin"></span>
+            <span class="btn-content">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+              Mulai Kirim
+            </span>
+          </button>
+          <button class="btn btn-danger hidden" id="btnStopAccel" style="flex:1">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <rect x="6" y="6" width="12" height="12"/>
+            </svg>
+            Stop
+          </button>
+        </div>
+
+        <!-- Latest dari server -->
+        <div class="sep"><span>data terbaru dari server</span></div>
+
+        <div class="field">
+          <label for="accel_fetch_device">Device ID untuk fetch</label>
+          <div class="input-box">
+            <svg class="field-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="accel_fetch_device" placeholder="dev-001" autocomplete="off" />
+          </div>
+        </div>
+
+        <button class="btn btn-outline" id="btnFetchAccel">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"/>
+            <path d="M20.49 15a9 9 0 1 1-.08-4.49"/>
+          </svg>
+          Ambil Data Latest
+        </button>
+
+        <div class="result-box hidden" id="accelResult"></div>
+      </div>
+    </section>
+
+    <!-- ───────── GPS PAGE ───────── -->
+    <section id="gpsPage" class="page">
+      <div class="page-head">
+        <div class="page-head-text">
+          <span class="chip chip-green">Lokasi</span>
+          <h2>GPS Tracking</h2>
+          <p>Log posisi & tampil di peta marker + polyline</p>
+        </div>
+        <div class="page-head-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="page-body">
+        <!-- Device ID -->
+        <div class="field">
+          <label for="gps_device_id">Device ID</label>
+          <div class="input-box">
+            <svg class="field-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="5" y="2" width="14" height="20" rx="2"/>
+              <line x1="12" y1="18" x2="12.01" y2="18"/>
+            </svg>
+            <input type="text" id="gps_device_id" placeholder="dev-001" autocomplete="off" />
+          </div>
+        </div>
+
+        <!-- Koordinat live -->
+        <div class="gps-coords" id="gpsCoords">
+          <div class="coord-item">
+            <span class="coord-label">LAT</span>
+            <span class="coord-val" id="gpsLat">—</span>
+          </div>
+          <div class="coord-divider"></div>
+          <div class="coord-item">
+            <span class="coord-label">LNG</span>
+            <span class="coord-val" id="gpsLng">—</span>
+          </div>
+          <div class="coord-divider"></div>
+          <div class="coord-item">
+            <span class="coord-label">ACC</span>
+            <span class="coord-val" id="gpsAcc">—</span>
+          </div>
+        </div>
+
+        <!-- Buttons GPS -->
+        <div class="btn-pair">
+          <button class="btn btn-primary" id="btnStartGps" style="flex:2">
+            <span class="btn-spin"></span>
+            <span class="btn-content">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+              </svg>
+              Mulai Tracking
+            </span>
+          </button>
+          <button class="btn btn-danger hidden" id="btnStopGps" style="flex:1">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <rect x="6" y="6" width="12" height="12"/>
+            </svg>
+            Stop
+          </button>
+        </div>
+
+        <!-- Peta -->
+        <div id="mapContainer" class="map-container">
+          <div id="leafletMap"></div>
+        </div>
+
+        <!-- Fetch history -->
+        <div class="sep"><span>ambil riwayat dari server</span></div>
+
+        <div class="field">
+          <label for="gps_fetch_device">Device ID untuk fetch</label>
+          <div class="input-box">
+            <svg class="field-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="gps_fetch_device" placeholder="dev-001" autocomplete="off" />
+          </div>
+        </div>
+
+        <button class="btn btn-outline" id="btnFetchGps">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"/>
+            <path d="M20.49 15a9 9 0 1 1-.08-4.49"/>
+          </svg>
+          Load Peta dari History
+        </button>
+
+        <div class="result-box hidden" id="gpsResult"></div>
+      </div>
+    </section>
+
   </main>
 
   <footer class="footer">
@@ -318,5 +501,7 @@
 <script src="js/app.js"></script>
 <script src="js/dosen.js"></script>
 <script src="js/mahasiswa.js"></script>
+<script src="js/accel.js"></script>
+<script src="js/gps.js"></script>
 </body>
 </html>

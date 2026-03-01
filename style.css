@@ -198,43 +198,59 @@ body.dark .ic-moon { opacity: 0; transform: rotate(-90deg) scale(0.5); }
 body.dark .ic-sun  { opacity: 1; transform: rotate(0deg) scale(1); }
 
 /* ── SEGMENT ─────────────────────────────────────── */
-.segment-wrap { display: flex; justify-content: center; }
+.segment-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 0 4px;
+}
 
 .segment {
-  position: relative; display: flex;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   background: var(--surface);
   border: 1.5px solid var(--border);
-  border-radius: 100px; padding: 4px;
+  border-radius: 14px;
+  padding: 4px;
   box-shadow: var(--shadow-sm);
+  width: 100%;
+  max-width: 430px;
+  gap: 0;
 }
 
 .seg-indicator {
   position: absolute;
   top: 4px; left: 4px;
-  width: calc(50% - 4px);
+  width: calc(25% - 4px);
   height: calc(100% - 8px);
   background: var(--grad);
-  border-radius: 100px;
+  border-radius: 10px;
   transition: transform .3s cubic-bezier(.34,1.56,.64,1);
   box-shadow: var(--grad-glow);
   z-index: 0;
 }
-.seg-indicator.right { transform: translateX(100%); }
+.seg-indicator.right  { transform: translateX(calc(100% + 0px)); }
+.seg-indicator.right2 { transform: translateX(calc(200% + 0px)); }
+.seg-indicator.right3 { transform: translateX(calc(300% + 0px)); }
 
 .seg-btn {
   position: relative; z-index: 1;
-  display: flex; align-items: center; gap: 7px;
-  padding: 9px 26px;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 9px 6px;
   border: none; background: transparent;
-  font-family: inherit; font-size: 14px; font-weight: 600;
+  font-family: inherit; font-size: 12px; font-weight: 600;
   color: var(--text-3);
-  cursor: pointer; border-radius: 100px;
+  cursor: pointer; border-radius: 10px;
   transition: color var(--t);
   white-space: nowrap;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+  flex-direction: column;
+  line-height: 1.2;
 }
+.seg-btn svg { flex-shrink: 0; }
 .seg-btn.active { color: #fff; }
+.seg-btn.active svg { stroke: #fff; }
 
 /* ── CARD ────────────────────────────────────────── */
 .card {
@@ -665,11 +681,153 @@ input.mono {
   .page-head   { padding: 20px 18px 0; margin-bottom: 16px; }
   .page-body   { padding: 0 18px 22px; gap: 11px; }
   .row-2       { grid-template-columns: 1fr; }
-  .seg-btn     { padding: 9px 18px; font-size: 13px; }
+  .seg-btn     { padding: 7px 4px; font-size: 11px; }
   .page-head-text h2 { font-size: 20px; }
   .qr-token    { font-size: 16px; letter-spacing: 2px; }
   .btn-pair    { flex-wrap: wrap; }
 }
+
+
+/* ══════════════════════════════════════════════
+   CHIP COLORS TAMBAHAN
+   ══════════════════════════════════════════════ */
+.chip-teal {
+  background: rgba(20,184,166,0.12);
+  color: #0d9488;
+}
+body.dark .chip-teal {
+  background: rgba(20,184,166,0.20);
+  color: #2dd4bf;
+}
+.chip-green {
+  background: rgba(22,163,74,0.12);
+  color: #16a34a;
+}
+body.dark .chip-green {
+  background: rgba(34,197,94,0.20);
+  color: #4ade80;
+}
+
+/* ══════════════════════════════════════════════
+   ACCELEROMETER SENSOR DISPLAY
+   ══════════════════════════════════════════════ */
+.sensor-live {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.sensor-axis {
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 14px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: border-color var(--t), background var(--t);
+}
+.sensor-axis:hover { border-color: var(--accent-border); }
+
+.axis-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.axis-val {
+  font-family: 'Courier New', monospace;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.sensor-hint {
+  font-size: 12px;
+  color: var(--text-3);
+  text-align: center;
+  padding: 2px 0;
+}
+
+.chart-wrap {
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 12px;
+  height: 160px;
+  position: relative;
+}
+
+/* ══════════════════════════════════════════════
+   GPS KOORDINAT DISPLAY
+   ══════════════════════════════════════════════ */
+.gps-coords {
+  display: flex;
+  align-items: center;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 14px 12px;
+}
+
+.coord-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.coord-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.coord-val {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+.coord-divider {
+  width: 1px;
+  height: 34px;
+  background: var(--border);
+  flex-shrink: 0;
+  margin: 0 4px;
+}
+
+/* ══════════════════════════════════════════════
+   LEAFLET MAP
+   ══════════════════════════════════════════════ */
+.map-container {
+  border-radius: var(--r-md);
+  overflow: hidden;
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  animation: fadeUp .3s ease;
+}
+
+#leafletMap {
+  height: 280px;
+  width: 100%;
+  z-index: 1;
+}
+
+.leaflet-top, .leaflet-bottom { z-index: 5 !important; }
+
+/* manualCourseRow */
+#manualCourseRow { display: none; }
+#manualCourseRow.show { display: grid; }
 
 @media (min-width: 600px) {
   .app { padding: 36px 20px 64px; }
