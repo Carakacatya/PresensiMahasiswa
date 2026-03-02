@@ -207,17 +207,21 @@
 
     try {
       const result = await gasGet('telemetry/accel/latest', { device_id: deviceId });
-      if (result.ok) {
+      if (result.ok && result.data) {
         const d = result.data;
+        const x = (d.x !== undefined) ? Number(d.x).toFixed(4) : '—';
+        const y = (d.y !== undefined) ? Number(d.y).toFixed(4) : '—';
+        const z = (d.z !== undefined) ? Number(d.z).toFixed(4) : '—';
+        const t = d.t || d.ts || '—';
         showResult(
           'accelResult',
           `✅ Latest <strong>${deviceId}</strong><br>` +
-          `X: <strong>${d.x}</strong> &nbsp; Y: <strong>${d.y}</strong> &nbsp; Z: <strong>${d.z}</strong><br>` +
-          `<small style="opacity:.7">${d.t}</small>`,
+          `X: <strong>${x}</strong> &nbsp; Y: <strong>${y}</strong> &nbsp; Z: <strong>${z}</strong><br>` +
+          `<small style="opacity:.7">${t}</small>`,
           'success', 0
         );
       } else {
-        showResult('accelResult', '❌ ' + (result.error || 'Data tidak ditemukan'), 'error');
+        showResult('accelResult', '❌ ' + (result.error || 'Data tidak ditemukan. Pastikan sudah Mulai Kirim dulu!'), 'error');
       }
     } catch (err) {
       showResult('accelResult', '❌ Koneksi gagal: ' + err.message, 'error');
