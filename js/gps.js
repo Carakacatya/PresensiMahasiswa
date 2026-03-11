@@ -10,13 +10,6 @@
 
   const $ = id => document.getElementById(id);
 
-  /* ── AUTO-FILL NIM DARI localStorage ──────── */
-  (function autoFillNim() {
-    const saved = localStorage.getItem('nim') || '';
-    const el = document.getElementById('gps_device_id');
-    if (el && saved && !el.value) el.value = saved;
-  })();
-
   /* ── STATE ─────────────────────────────────── */
   let isRunning    = false;
   let watchId      = null;

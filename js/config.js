@@ -1,4 +1,4 @@
-const BASE_URL = "https://script.google.com/macros/s/AKfycbzTSyrZDLKqOQnDjj53TNxjpHNRULL-yES-XM_t0u2l40RwgP-cEPhSg5h3BrSQNQhB/exec";
+const BASE_URL = "https://script.google.com/macros/s/AKfycbyKMeZdNxWdlsjMVkeZEoSdUdLPh-NC1hv64coIYCkVhYcFbrCs5Y7CI181j8z2aAKb/exec";
 
 /* ════════════════════════════════════════════════
    SOLUSI FINAL:

@@ -1,77 +1,83 @@
 /* ════════════════════════════════════════════════
    mahasiswa.js — Tab Mahasiswa
-   - user_id  = NIM
-   - device_id = Nama mahasiswa
-   - Scan kamera (env di HP, user di laptop)
-   - Upload file QR
-   - Manual token input
-   - Check In (kirim user_id + device_id + qr_token)
-   - Cek Status
+
+   3 cara input token:
+   1. Scan kamera   → parse JSON otomatis
+   2. Upload file   → decode pakai jsQR (lebih reliable)
+   3. Token manual  → muncul field course & session
    ════════════════════════════════════════════════ */
 
 (function initMahasiswa() {
   'use strict';
 
-  /* ── STATE ─────────────────────────────── */
-  let html5QrScanner = null;
-
-  /* ── HELPER: safe getElementById ──────── */
   const $ = (id) => document.getElementById(id);
 
-  /* ── DETECT MOBILE ─────────────────────── */
+  let html5QrScanner = null;
+  let parsedQR = { token: '', course_id: '', session_id: '', isManual: false };
+
   function isMobile() {
     return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   }
 
-  /* ── HELPER: extract plain token dari string / JSON ── */
-  function parseToken(raw) {
-    const s = (raw || '').trim();
-    try {
-      const obj = JSON.parse(s);
-      // Support berbagai bentuk: {token}, {TOKEN}, {qr_token}
-      const t = obj.token || obj.TOKEN || obj.qr_token || obj.QR_TOKEN;
-      if (t) return String(t).toUpperCase();
-    } catch(_) {}
-    return s.toUpperCase();
-  }
-
   /* ══════════════════════════════════════════
-     AUTO-SAVE NIM → sync ke Accel & GPS
-     Dijalankan SAAT HALAMAN LOAD
+     PARSE TEKS QR
   ══════════════════════════════════════════ */
-  function syncNimToDevices(nim) {
-    const accelDev = document.getElementById('accel_device_id');
-    const gpsDev   = document.getElementById('gps_device_id');
-    if (accelDev) accelDev.value = nim;
-    if (gpsDev)   gpsDev.value   = nim;
+  function handleScannedText(raw) {
+    const text = (raw || '').trim();
+
+    try {
+      const obj = JSON.parse(text);
+      if (obj.token) {
+        parsedQR = {
+          token     : obj.token.toUpperCase(),
+          course_id : obj.course_id  || '',
+          session_id: obj.session_id || '',
+          isManual  : false
+        };
+        const ti = $('manualToken');
+        if (ti) ti.value = parsedQR.token;
+        setManualMode(false);
+        updateQRInfo();
+        return;
+      }
+    } catch (_) {}
+
+    // Plain token — minta course & session manual
+    parsedQR = { token: text.toUpperCase(), course_id: '', session_id: '', isManual: true };
+    const ti = $('manualToken');
+    if (ti) ti.value = parsedQR.token;
+    setManualMode(true);
+    updateQRInfo();
   }
 
-  (function initNimSync() {
-    const nimInput = document.getElementById('user_id');
-    if (!nimInput) return;
-
-    // Load NIM tersimpan saat halaman pertama dibuka
-    const saved = localStorage.getItem('nim') || '';
-    if (saved) {
-      nimInput.value = saved;
-      syncNimToDevices(saved);
+  function setManualMode(show) {
+    const row = $('manualCourseRow');
+    if (!row) return;
+    row.classList.toggle('hidden', !show);
+    if (!show) {
+      if ($('mhs_course_id'))  $('mhs_course_id').value  = '';
+      if ($('mhs_session_id')) $('mhs_session_id').value = '';
     }
+  }
 
-    // Simpan + sync setiap kali NIM diketik
-    nimInput.addEventListener('input', () => {
-      const val = nimInput.value.trim();
-      localStorage.setItem('nim', val);
-      syncNimToDevices(val);
-    });
-  })();
+  function updateQRInfo() {
+    const el = $('qrInfo');
+    if (!el) return;
+    if (parsedQR.course_id && parsedQR.session_id) {
+      el.textContent = '📘 ' + parsedQR.course_id + ' · ' + parsedQR.session_id;
+      el.classList.remove('hidden');
+    } else if (parsedQR.token && parsedQR.isManual) {
+      el.textContent = '✏️ Token manual — isi Course ID & Session ID di bawah';
+      el.classList.remove('hidden');
+    } else {
+      el.classList.add('hidden');
+    }
+  }
 
   /* ══════════════════════════════════════════
      SCANNER KAMERA
-     Pakai event delegation agar tidak masalah
-     saat elemen belum visible waktu load
   ══════════════════════════════════════════ */
-
-  document.addEventListener('click', function handler(e) {
+  document.addEventListener('click', function (e) {
     if (e.target.closest('#startScan')) openScanner();
     if (e.target.closest('#stopScan'))  stopScanner();
   });
@@ -81,12 +87,9 @@
     const startBtn = $('startScan');
     const stopBtn  = $('stopScan');
     const readerEl = $('reader');
-
     if (!wrapper || !readerEl) return;
 
-    // Reset reader element agar tidak konflik
     readerEl.innerHTML = '';
-
     wrapper.classList.remove('hidden');
     startBtn.classList.add('hidden');
     stopBtn.classList.remove('hidden');
@@ -96,12 +99,11 @@
     try {
       await html5QrScanner.start(
         { facingMode: isMobile() ? 'environment' : 'user' },
-        { fps: 10, qrbox: { width: 200, height: 200 } },
+        { fps: 10, qrbox: { width: 220, height: 220 } },
         (decodedText) => {
-          const tokenInput = $('manualToken');
-          if (tokenInput) tokenInput.value = decodedText.toUpperCase();
+          handleScannedText(decodedText);
           stopScanner();
-          showResult('statusResult', '📷 Token berhasil discan!', 'success');
+          showResult('statusResult', '📷 QR berhasil discan!', 'success');
         }
       );
     } catch (err) {
@@ -123,14 +125,13 @@
     if (stopBtn)  stopBtn.classList.add('hidden');
   }
 
-  // Expose ke global agar app.js bisa panggil saat pindah tab
   window.stopScanner = stopScanner;
 
-
   /* ══════════════════════════════════════════
-     FILE QR SCAN
+     UPLOAD FILE QR — pakai jsQR
+     Html5Qrcode.scanFile tidak reliable untuk foto.
+     jsQR decode langsung dari pixel ImageData.
   ══════════════════════════════════════════ */
-
   document.addEventListener('change', async function (e) {
     if (!e.target.closest('#qrFile')) return;
 
@@ -140,86 +141,123 @@
     const lbl = $('fileLabel');
     if (lbl) lbl.textContent = file.name;
 
-    // Buat container tersembunyi untuk scanFile
-    let tempDiv = $('_qrTemp');
-    if (!tempDiv) {
-      tempDiv = document.createElement('div');
-      tempDiv.id = '_qrTemp';
-      Object.assign(tempDiv.style, {
-        position: 'absolute', width: '1px', height: '1px',
-        overflow: 'hidden', opacity: '0', pointerEvents: 'none'
-      });
-      document.body.appendChild(tempDiv);
-    } else {
-      tempDiv.innerHTML = '';
-    }
+    showResult('statusResult', '⏳ Membaca QR dari gambar...', 'success');
 
     try {
-      const scanner = new Html5Qrcode('_qrTemp');
-      const decoded = await scanner.scanFile(file, false);
-      const ti = $('manualToken');
-      if (ti) ti.value = decoded.toUpperCase();
+      const decoded = await decodeQRFromFile(file);
+      handleScannedText(decoded);
       showResult('statusResult', '📁 QR dari gambar berhasil dibaca!', 'success');
-    } catch {
-      showResult('statusResult', 'Tidak bisa membaca QR dari gambar ini.', 'error');
+    } catch (err) {
+      console.error('QR file error:', err);
+      showResult('statusResult',
+        '❌ QR tidak terbaca. Pastikan gambar jelas, tidak blur, dan QR terlihat penuh.',
+        'error'
+      );
+    }
+
+    e.target.value = '';
+  });
+
+  /* Decode QR dari File menggunakan jsQR (via Canvas) */
+  function decodeQRFromFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = function (ev) {
+        const img = new Image();
+        img.onload = function () {
+          const canvas  = document.createElement('canvas');
+          canvas.width  = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+          // jsQR decode
+          const code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: 'dontInvert'
+          });
+
+          if (code) {
+            resolve(code.data);
+          } else {
+            // Coba dengan inverted
+            const code2 = jsQR(imageData.data, imageData.width, imageData.height, {
+              inversionAttempts: 'invertFirst'
+            });
+            if (code2) {
+              resolve(code2.data);
+            } else {
+              reject(new Error('QR tidak ditemukan di gambar'));
+            }
+          }
+        };
+        img.onerror = () => reject(new Error('Gagal load gambar'));
+        img.src = ev.target.result;
+      };
+      reader.onerror = () => reject(new Error('Gagal baca file'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /* ── Input token manual → tampilkan field course/session ── */
+  document.addEventListener('input', function (e) {
+    if (!e.target.closest('#manualToken')) return;
+    const val = e.target.value.trim().toUpperCase();
+    if (val) {
+      parsedQR = { token: val, course_id: '', session_id: '', isManual: true };
+      setManualMode(true);
+      updateQRInfo();
+    } else {
+      parsedQR = { token: '', course_id: '', session_id: '', isManual: false };
+      setManualMode(false);
+      updateQRInfo();
     }
   });
 
-
   /* ══════════════════════════════════════════
      CHECK IN
-     Payload: user_id + device_id + qr_token + ts
   ══════════════════════════════════════════ */
-
   document.addEventListener('click', async function (e) {
     if (!e.target.closest('#btnCheckin')) return;
 
     const btnCI    = $('btnCheckin');
     const userId   = ($('user_id')?.value   || '').trim();
     const deviceId = ($('device_id')?.value || '').trim();
-    const token    = parseToken($('manualToken')?.value || '');
+    const token    = parsedQR.token || ($('manualToken')?.value || '').trim().toUpperCase();
 
-    // Validasi
-    if (!userId) {
-      showResult('statusResult', 'Harap isi NIM (User ID) terlebih dahulu.', 'error');
-      return;
-    }
-    if (!deviceId) {
-      showResult('statusResult', 'Harap isi Nama (Device ID) terlebih dahulu.', 'error');
-      return;
-    }
-    if (!token) {
-      showResult('statusResult', 'Harap scan QR atau masukkan token terlebih dahulu.', 'error');
-      return;
-    }
+    // Course & session: dari scan QR ATAU dari input manual
+    const courseId  = parsedQR.course_id  || ($('mhs_course_id')?.value  || '').trim();
+    const sessionId = parsedQR.session_id || ($('mhs_session_id')?.value || '').trim();
+
+    if (!userId)   { showResult('statusResult', 'Harap isi NIM terlebih dahulu.', 'error'); return; }
+    if (!deviceId) { showResult('statusResult', 'Harap isi Nama terlebih dahulu.', 'error'); return; }
+    if (!token)    { showResult('statusResult', 'Harap scan QR atau masukkan token.', 'error'); return; }
+    if (!courseId) { showResult('statusResult', 'Harap isi Course ID.', 'error'); return; }
+    if (!sessionId){ showResult('statusResult', 'Harap isi Session ID.', 'error'); return; }
 
     setLoading(btnCI, true);
 
     try {
-      const res = await fetch(`${BASE_URL}/presence/checkin`, {
-        method : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body   : JSON.stringify({
-          user_id  : userId,
-          device_id: deviceId,
-          qr_token : token,
-          ts       : new Date().toISOString()
-        })
+      const result = await gasPost('presence/checkin', {
+        user_id   : userId,
+        device_id : deviceId,
+        course_id : courseId,
+        session_id: sessionId,
+        qr_token  : token,
+        ts        : new Date().toISOString()
       });
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const result = await res.json();
-
       if (result.ok) {
-        const status = result.data?.status || 'checked_in';
         showResult(
           'statusResult',
-          `✅ Check-in berhasil! &nbsp;<strong>${userId}</strong> &mdash; ${deviceId} &mdash; status: <strong>${status}</strong>`,
+          '✅ Check-in berhasil! <strong>' + userId + '</strong> — ' + deviceId +
+          '<br>📘 ' + courseId + ' · ' + sessionId,
           'success'
         );
-        // Reset token setelah checkin berhasil
-        const ti = $('manualToken');
-        if (ti) ti.value = '';
+        if ($('manualToken')) $('manualToken').value = '';
+        parsedQR = { token: '', course_id: '', session_id: '', isManual: false };
+        setManualMode(false);
+        updateQRInfo();
       } else {
         showResult('statusResult', '❌ Gagal: ' + (result.error || 'Token tidak valid atau expired.'), 'error');
       }
@@ -231,43 +269,33 @@
     }
   });
 
-
   /* ══════════════════════════════════════════
      CEK STATUS
   ══════════════════════════════════════════ */
-
   document.addEventListener('click', async function (e) {
     if (!e.target.closest('#btnStatus')) return;
 
-    const userId    = ($('user_id')?.value    || '').trim();
-    const courseId  = ($('course_id')?.value  || '').trim();
-    const sessionId = ($('session_id')?.value || '').trim();
+    const userId    = ($('user_id')?.value || '').trim();
+    const courseId  = parsedQR.course_id  || ($('mhs_course_id')?.value  || '').trim();
+    const sessionId = parsedQR.session_id || ($('mhs_session_id')?.value || '').trim();
 
-    if (!userId) {
-      showResult('statusResult', 'Harap isi NIM (User ID) terlebih dahulu.', 'error');
-      return;
-    }
+    if (!userId) { showResult('statusResult', 'Harap isi NIM terlebih dahulu.', 'error'); return; }
 
     try {
-      const params = new URLSearchParams({ user_id: userId });
-      if (courseId)  params.append('course_id', courseId);
-      if (sessionId) params.append('session_id', sessionId);
-
-      const res    = await fetch(`${BASE_URL}/presence/status?${params}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const result = await res.json();
+      const result = await gasGet('presence/status', {
+        user_id   : userId,
+        course_id : courseId,
+        session_id: sessionId
+      });
 
       if (result.ok) {
-        const d      = result.data;
-        const hadir  = d.status === 'checked_in';
-        const icon   = hadir ? '✅' : '⏳';
-        const label  = hadir ? 'Sudah hadir' : 'Belum hadir';
-        const detail = [d.course_id || courseId, d.session_id || sessionId]
-          .filter(Boolean).join(' / ');
-
+        const d     = result.data;
+        const hadir = d.status === 'checked_in';
+        const detail = [d.course_id, d.session_id].filter(Boolean).join(' / ');
         showResult(
           'statusResult',
-          `${icon} <strong>${label}</strong>${detail ? ' &mdash; ' + detail : ''}`,
+          (hadir ? '✅' : '⏳') + ' <strong>' + (hadir ? 'Sudah hadir' : 'Belum hadir') + '</strong>' +
+          (detail ? ' — ' + detail : ''),
           hadir ? 'success' : 'error'
         );
       } else {

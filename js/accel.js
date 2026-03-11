@@ -11,13 +11,6 @@
 
   const $ = id => document.getElementById(id);
 
-  /* ── AUTO-FILL NIM DARI localStorage ──────── */
-  (function autoFillNim() {
-    const saved = localStorage.getItem('nim') || '';
-    const el = document.getElementById('accel_device_id');
-    if (el && saved && !el.value) el.value = saved;
-  })();
-
   /* ── STATE ─────────────────────────────────── */
   let isRunning   = false;
   let sensorData  = { x: 0, y: 0, z: 9.8 };
@@ -168,18 +161,47 @@
     initChart();
     isRunning = true;
 
-    // Coba sensor real, fallback simulasi
-    const hasReal = startRealSensor();
-    if (!hasReal) startSimulation();
+    const hint = $('sensorHint');
 
-    // Kirim batch tiap 3 detik
-    sendInterval = setInterval(sendBatch, 3000);
+    // Tidak ada sensor sama sekali → simulasi
+    if (typeof DeviceMotionEvent === 'undefined') {
+      startSimulation();
+      finishStart();
+      return;
+    }
 
-    $('btnStartAccel').classList.add('hidden');
-    $('btnStopAccel').classList.remove('hidden');
-    showResult('accelResult', '📡 Streaming data ke server...', 'success', 0);
+    // iOS 13+ → minta izin (HARUS dari user gesture = klik tombol)
+    if (typeof DeviceMotionEvent.requestPermission === 'function') {
+      DeviceMotionEvent.requestPermission()
+        .then(state => {
+          if (state === 'granted') {
+            if (hint) hint.textContent = '📱 Sensor iOS aktif!';
+            window.addEventListener('devicemotion', onMotion);
+          } else {
+            if (hint) hint.textContent = '⚠️ Izin ditolak, pakai simulasi';
+            startSimulation();
+          }
+          finishStart();
+        })
+        .catch(() => {
+          startSimulation();
+          finishStart();
+        });
+    } else {
+      // Android → langsung pasang listener
+      if (hint) hint.textContent = '📱 Sensor Android aktif!';
+      window.addEventListener('devicemotion', onMotion);
+      finishStart();
+    }
   }
 
+  function finishStart() {
+    sendInterval = setInterval(sendBatch, 4000);
+    $('btnStartAccel').classList.add('hidden');
+    $('btnStopAccel').classList.remove('hidden');
+    showResult('accelResult', '📡 Streaming ke server tiap 4 detik...', 'success', 0);
+  }
+  
   function stopAccel() {
     isRunning = false;
     stopSimulation();
