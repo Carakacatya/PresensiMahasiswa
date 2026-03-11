@@ -23,6 +23,18 @@
     return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   }
 
+  /* ── HELPER: extract plain token dari string / JSON ── */
+  function parseToken(raw) {
+    const s = (raw || '').trim();
+    try {
+      const obj = JSON.parse(s);
+      // Support berbagai bentuk: {token}, {TOKEN}, {qr_token}
+      const t = obj.token || obj.TOKEN || obj.qr_token || obj.QR_TOKEN;
+      if (t) return String(t).toUpperCase();
+    } catch(_) {}
+    return s.toUpperCase();
+  }
+
   /* ══════════════════════════════════════════
      AUTO-SAVE NIM → sync ke Accel & GPS
      Dijalankan SAAT HALAMAN LOAD
@@ -165,7 +177,7 @@
     const btnCI    = $('btnCheckin');
     const userId   = ($('user_id')?.value   || '').trim();
     const deviceId = ($('device_id')?.value || '').trim();
-    const token    = ($('manualToken')?.value || '').trim().toUpperCase();
+    const token    = parseToken($('manualToken')?.value || '');
 
     // Validasi
     if (!userId) {
